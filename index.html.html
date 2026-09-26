@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>硕士学术论文 · AI提示词协作词库</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --primary-light: #dbeafe;
+            --secondary: #64748b;
+            --success: #10b981;
+            --danger: #ef4444;
+            --bg: #f1f5f9;
+            --card-bg: rgba(255, 255, 255, 0.9);
+            --border: #e2e8f0;
+            --text-main: #1e293b;
+            --text-sub: #64748b;
+            --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.1);
+            --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #f0f4f8 0%, #e2e8f0 100%);
+            color: var(--text-main);
+            min-height: 100vh;
+            padding: 0 20px 40px;
+        }
+
+        /* 顶部导航 */
+        .header {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 24px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            animation: fadeDown 0.6s ease-out;
+        }
+
+        .header h1 {
+            font-size: 26px;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--primary) 0%, #7c3aed 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        /* 主容器 */
+        .container {
+            max-width: 1280px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 24px;
+            animation: fadeUp 0.6s ease-out 0.1s both;
+        }
+
+        /* 通用卡片样式 */
+        .card {
+            background: var(--card-bg);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            box-shadow: var(--shadow-md);
+            border: 1px solid rgba(255,255,255,0.8);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .card:hover {
+            box-shadow: var(--shadow-lg);
+        }
+
+        /* 左侧边栏 */
+        .sidebar {
+            padding: 24px;
+            position: sticky;
+            top: 20px;
+            height: fit-content;
+        }
+
+        .sidebar h2 {
+            font-size: 18px;
+            margin-bottom: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: var(--text-main);
+        }
+
+        .category-list {
+            max-height: 400px;
+            overflow-y: auto;
+            padding-right: 4px;
+            margin-bottom: 20px;
+        }
+
+        .category-item {
+            padding: 12px 14px;
+            border-radius: 10px;
+            cursor: pointer;
+            margin-bottom: 6px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.2s ease;
+            color: var(--text-sub);
+            font-weight: 500;
+        }
+
+        .category-item:hover {
+            background: var(--primary-light);
+            color: var(--primary-dark);
+            transform: translateX(4px);
+        }
+
+        .category-item.active {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .category-item .del-btn {
+            opacity: 0;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: none;
+            width: 22px;
+            height: 22px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+
+        .category-item:hover .del-btn {
+            opacity: 1;
+        }
+
+        .category-item.active .del-btn:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .add-category-group {
+            display: flex;
+            gap: 8px;
+        }
+
+        .add-category-group input {
+            flex: 1;
+        }
+
+        /* 输入框通用样式 */
+        input, textarea {
+            border: 1.5px solid var(--border);
+            border-radius: 8px;
+            padding: 10px 12px;
+            font-size: 14px;
+            transition: all 0.2s ease;
+            background: white;
+            color: var(--text-main);
+            outline: none;
+        }
+
+        input:focus, textarea:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+        }
+
+        /* 按钮通用样式 */
+        .btn {
+            padding: 10px 16px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .btn-secondary {
+            background: #f1f5f9;
+            color: var(--text-sub);
+        }
+
+        .btn-secondary:hover {
+            background: #e2e8f0;
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-small {
+            padding: 6px 10px;
+            font-size: 13px;
+        }
+
+        /* 右侧主区域 */
+        .main {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .search-bar {
+            padding: 16px 20px;
+        }
+
+        .search-bar input {
+            width: 100%;
+            font-size: 15px;
+        }
+
+        .form-card {
+            padding: 24px;
+        }
+
+        .form-card h2 {
+            font-size: 18px;
+            margin-bottom: 18px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .form-row {
+            margin-bottom: 16px;
+        }
+
+        .form-row label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 500;
+            color: var(--text-main);
+            font-size: 14px;
+        }
+
+        .form-row textarea {
+            width: 100%;
+            min-height: 140px;
+            resize: vertical;
+            line-height: 1.6;
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        /* 提示词列表 */
+        .list-card {
+            padding: 24px;
+        }
+
+        .list-card h2 {
+            font-size: 18px;
+            margin-bottom: 18px;
+        }
+
+        .prompt-card {
+            border: 1.5px solid var(--border);
+            border-radius: 12px;
+            padding: 18px;
+            margin-bottom: 16px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            background: white;
+            animation: fadeInUp 0.4s ease-out both;
+        }
+
+        .prompt-card:hover {
+            border-color: var(--primary-light);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .prompt-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 10px;
+        }
+
+        .prompt-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        .prompt-remark {
+            font-size: 13px;
+            color: var(--text-sub);
+            background: #f1f5f9;
+            padding: 3px 8px;
+            border-radius: 6px;
+        }
+
+        .prompt-content {
+            background: #f8fafc;
+            border-left: 4px solid var(--primary);
+            padding: 12px 14px;
+            border-radius: 0 8px 8px 0;
+            white-space: pre-wrap;
+            line-height: 1.6;
+            font-size: 14px;
+            color: var(--text-main);
+            margin: 12px 0;
+            max-height: 240px;
+            overflow-y: auto;
+        }
+
+        .prompt-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-sub);
+        }
+
+        .empty-state svg {
+            width: 64px;
+            height: 64px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        /* 自定义确认弹窗 */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(15, 23, 42, 0.5);
+            backdrop-filter: blur(4px);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            animation: fadeIn 0.2s ease-out;
+        }
+
+        .modal-overlay.show {
+            display: flex;
+        }
+
+        .modal {
+            background: white;
+            border-radius: 16px;
+            padding: 28px;
+            width: 90%;
+            max-width: 420px;
+            box-shadow: var(--shadow-lg);
+            animation: scaleIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .modal h3 {
+            font-size: 18px;
+            margin-bottom: 12px;
+        }
+
+        .modal p {
+            color: var(--text-sub);
+            margin-bottom: 20px;
+            line-height: 1.6;
+        }
+
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        /* 隐藏的文件输入 */
+        #fileInput {
+            display: none;
+        }
+
+        /* 动画定义 */
+        @keyframes fadeDown {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes scaleIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        /* 滚动条美化 */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        /* 响应式 */
+        @media (max-width: 900px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+            .sidebar {
+                position: static;
+            }
+            .header {
+                flex-direction: column;
+                gap: 16px;
+                align-items: flex-start;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 顶部导航 -->
+    <div class="header">
+        <h1>📚 硕士学术论文 · AI提示词协作词库</h1>
+        <div class="header-actions">
+            <button class="btn btn-secondary" onclick="triggerImport()">📥 导入词库</button>
+            <button class="btn btn-primary" onclick="exportLibrary()">📤 导出词库</button>
+            <input type="file" id="fileInput" accept=".json" onchange="importLibrary(event)">
+        </div>
+    </div>
+
+    <!-- 主容器 -->
+    <div class="container">
+        <!-- 左侧分类栏 -->
+        <div class="card sidebar">
+            <h2>📂 分类目录</h2>
+            <div class="category-list" id="categoryList"></div>
+            <div class="add-category-group">
+                <input id="newCategoryInput" placeholder="新建分类...">
+                <button class="btn btn-primary btn-small" onclick="addCategory()">+</button>
+            </div>
+        </div>
+
+        <!-- 右侧主区域 -->
+        <div class="main">
+            <!-- 搜索栏 -->
+            <div class="card search-bar">
+                <input id="searchInput" placeholder="🔍 搜索提示词标题、内容或备注..." oninput="renderPromptList()">
+            </div>
+
+            <!-- 新增/编辑表单 -->
+            <div class="card form-card">
+                <h2>✏️ 新增 / 编辑提示词</h2>
+                <div class="form-row">
+                    <label>提示词标题</label>
+                    <input id="promptTitle" placeholder="例如：SSCI期刊文献综述系统写作提示">
+                </div>
+                <div class="form-row">
+                    <label>提示词内容</label>
+                    <textarea id="promptContent" placeholder="在此粘贴完整的AI提示词..."></textarea>
+                </div>
+                <div class="form-row">
+                    <label>适用场景备注</label>
+                    <input id="promptRemark" placeholder="例如：传播学硕士、质性研究、降重润色">
+                </div>
+                <input type="hidden" id="editId">
+                <div class="form-actions">
+                    <button class="btn btn-primary" onclick="savePrompt()">💾 保存提示词</button>
+                    <button class="btn btn-secondary" onclick="clearForm()">清空表单</button>
+                </div>
+            </div>
+
+            <!-- 提示词列表 -->
+            <div class="card list-card">
+                <h2>📝 当前分类提示词</h2>
+                <div id="promptListBox"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 自定义确认弹窗 -->
+    <div class="modal-overlay" id="confirmModal">
+        <div class="modal">
+            <h3 id="modalTitle">确认操作</h3>
+            <p id="modalText">确定要执行此操作吗？</p>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeConfirm(false)">取消</button>
+                <button class="btn btn-danger" onclick="closeConfirm(true)">确定</button>
+            </div>
+        </div>
+    </div>
+
+<script>
+// 全局数据
+let data = JSON.parse(localStorage.getItem('masterThesisPromptLib')) || {
+    categories: ["文献精读与综述", "研究设计与方法", "论文正文写作", "摘要与关键词", "润色降重与排版", "答辩PPT与汇报", "数据分析与解释"],
+    activeCategory: "文献精读与综述",
+    prompts: []
+};
+
+let confirmCallback = null;
+
+// 保存到本地存储
+function saveData() {
+    localStorage.setItem('masterThesisPromptLib', JSON.stringify(data));
+}
+
+// ========== 分类管理 ==========
+function renderCategories() {
+    const wrap = document.getElementById('categoryList');
+    wrap.innerHTML = '';
+    data.categories.forEach((cat, idx) => {
+        const count = data.prompts.filter(p => p.category === cat).length;
+        const div = document.createElement('div');
+        div.className = 'category-item' + (cat === data.activeCategory ? ' active' : '');
+        div.innerHTML = `
+            <span onclick="switchCategory('${cat}')">${cat} <small>(${count})</small></span>
+            <button class="del-btn" onclick="delCategory(${idx})">×</button>
+        `;
+        wrap.appendChild(div);
+    });
+}
+
+function switchCategory(name) {
+    data.activeCategory = name;
+    saveData();
+    renderCategories();
+    renderPromptList();
+}
+
+function addCategory() {
+    const input = document.getElementById('newCategoryInput');
+    const val = input.value.trim();
+    if (!val) return showToast('请输入分类名称');
+    if (data.categories.includes(val)) return showToast('该分类已存在');
+    
+    data.categories.push(val);
+    data.activeCategory = val;
+    input.value = '';
+    saveData();
+    renderCategories();
+    renderPromptList();
+    showToast('分类创建成功');
+}
+
+function delCategory(idx) {
+    const catName = data.categories[idx];
+    showConfirm(
+        '删除分类确认',
+        `确定删除分类「${catName}」吗？该分类下的所有提示词将一并删除，且无法恢复。`,
+        () => {
+            data.prompts = data.prompts.filter(p => p.category !== catName);
+            data.categories.splice(idx, 1);
+            if (data.activeCategory === catName) {
+                data.activeCategory = data.categories[0] || '';
+            }
+            saveData();
+            renderCategories();
+            renderPromptList();
+            showToast('分类已删除');
+        }
+    );
+}
+
+// ========== 提示词管理 ==========
+function renderPromptList() {
+    const keyword = document.getElementById('searchInput').value.toLowerCase().trim();
+    const box = document.getElementById('promptListBox');
+    let list = data.prompts.filter(p => p.category === data.activeCategory);
+    
+    if (keyword) {
+        list = list.filter(p => 
+            p.title.toLowerCase().includes(keyword) || 
+            p.content.toLowerCase().includes(keyword) || 
+            p.remark.toLowerCase().includes(keyword)
+        );
+    }
+
+    if (list.length === 0) {
+        box.innerHTML = `
+            <div class="empty-state">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+                <p>暂无提示词，在上方表单添加第一条吧</p>
+            </div>
+        `;
+        return;
+    }
+
+    box.innerHTML = '';
+    list.forEach((item, index) => {
+        const card = document.createElement('div');
+        card.className = 'prompt-card';
+        card.style.animationDelay = `${index * 0.05}s`;
+        card.innerHTML = `
+            <div class="prompt-header">
+                <div class="prompt-title">${item.title}</div>
+                <div class="prompt-remark">${item.remark || '无备注'}</div>
+            </div>
+            <div class="prompt-content">${escapeHtml(item.content)}</div>
+            <div class="prompt-actions">
+                <button class="btn btn-primary btn-small" onclick="copyPrompt('${item.id}')">📋 一键复制</button>
+                <button class="btn btn-success btn-small" onclick="copyAndGo('${item.id}', 'doubao')">🚀 复制并去豆包</button>
+                <button class="btn btn-secondary btn-small" onclick="copyAndGo('${item.id}', 'chatgpt')">🤖 复制并去ChatGPT</button>
+                <button class="btn btn-secondary btn-small" onclick="editPrompt('${item.id}')">✏️ 编辑</button>
+                <button class="btn btn-danger btn-small" onclick="deletePrompt('${item.id}')">🗑️ 删除</button>
+            </div>
+        `;
+        box.appendChild(card);
+    });
+}
+
+function savePrompt() {
+    const title = document.getElementById('promptTitle').value.trim();
+    const content = document.getElementById('promptContent').value.trim();
+    const remark = document.getElementById('promptRemark').value.trim();
+    const editId = document.getElementById('editId').value;
+
+    if (!title || !content) return showToast('标题和提示词内容不能为空');
+
+    if (editId) {
+        const target = data.prompts.find(p => p.id === editId);
+        target.title = title;
+        target.content = content;
+        target.remark = remark;
+        target.category = data.activeCategory;
+        showToast('提示词已更新');
+    } else {
+        const newItem = {
+            id: Date.now().toString(),
+            category: data.activeCategory,
+            title, content, remark,
+            createTime: new Date().toISOString()
+        };
+        data.prompts.push(newItem);
+        showToast('提示词添加成功');
+    }
+
+    saveData();
+    clearForm();
+    renderCategories();
+    renderPromptList();
+}
+
+function clearForm() {
+    document.getElementById('promptTitle').value = '';
+    document.getElementById('promptContent').value = '';
+    document.getElementById('promptRemark').value = '';
+    document.getElementById('editId').value = '';
+}
+
+function editPrompt(id) {
+    const item = data.prompts.find(p => p.id === id);
+    document.getElementById('promptTitle').value = item.title;
+    document.getElementById('promptContent').value = item.content;
+    document.getElementById('promptRemark').value = item.remark;
+    document.getElementById('editId').value = item.id;
+    
+    // 滚动到表单
+    document.querySelector('.form-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function deletePrompt(id) {
+    showConfirm(
+        '删除提示词',
+        '确定删除这条提示词吗？删除后无法恢复。',
+        () => {
+            data.prompts = data.prompts.filter(p => p.id !== id);
+            saveData();
+            renderCategories();
+            renderPromptList();
+            showToast('提示词已删除');
+        }
+    );
+}
+
+// ========== 复制与跳转 ==========
+function copyPrompt(id) {
+    const item = data.prompts.find(p => p.id === id);
+    navigator.clipboard.writeText(item.content).then(() => {
+        showToast('✅ 提示词已复制到剪贴板');
+    }).catch(() => {
+        showToast('复制失败，请手动复制');
+    });
+}
+
+function copyAndGo(id, platform) {
+    const item = data.prompts.find(p => p.id === id);
+    const urls = {
+        doubao: 'https://www.doubao.com',
+        chatgpt: 'https://chat.openai.com',
+        claude: 'https://claude.ai'
+    };
+    
+    navigator.clipboard.writeText(item.content).then(() => {
+        window.open(urls[platform], '_blank');
+        showToast('✅ 已复制并跳转AI平台');
+    }).catch(() => {
+        window.open(urls[platform], '_blank');
+        showToast('已跳转平台，请手动粘贴');
+    });
+}
+
+// ========== 导入导出（多人协作核心） ==========
+function triggerImport() {
+    document.getElementById('fileInput').click();
+}
+
+function importLibrary(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const imported = JSON.parse(e.target.result);
+            if (!imported.categories || !imported.prompts) {
+                throw new Error('无效的词库文件格式');
+            }
+
+            // 合并分类：自动添加不存在的分类
+            let newCatCount = 0;
+            imported.categories.forEach(cat => {
+                if (!data.categories.includes(cat)) {
+                    data.categories.push(cat);
+                    newCatCount++;
+                }
+            });
+
+            // 合并提示词：全部追加
+            const oldCount = data.prompts.length;
+            imported.prompts.forEach(p => {
+                // 生成新ID避免冲突
+                p.id = Date.now().toString() + Math.random().toString(36).slice(2, 6);
+                data.prompts.push(p);
+            });
+            const newCount = data.prompts.length - oldCount;
+
+            saveData();
+            renderCategories();
+            renderPromptList();
+            
+            showToast(`导入成功：新增 ${newCatCount} 个分类，${newCount} 条提示词`);
+        } catch (err) {
+            showToast('导入失败：文件格式错误');
+            console.error(err);
+        }
+    };
+    reader.readAsText(file);
+    event.target.value = ''; // 重置以便重复导入同一文件
+}
+
+function exportLibrary() {
+    const jsonStr = JSON.stringify(data, null, 2);
+    const blob = new Blob([jsonStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `硕士论文提示词库_${new Date().toLocaleDateString().replace(/\//g, '-')}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    showToast('词库已导出，可分享给团队成员导入');
+}
+
+// ========== 通用工具 ==========
+function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+}
+
+function showConfirm(title, text, callback) {
+    document.getElementById('modalTitle').textContent = title;
+    document.getElementById('modalText').textContent = text;
+    document.getElementById('confirmModal').classList.add('show');
+    confirmCallback = callback;
+}
+
+function closeConfirm(result) {
+    document.getElementById('confirmModal').classList.remove('show');
+    if (result && confirmCallback) {
+        confirmCallback();
+    }
+    confirmCallback = null;
+}
+
+function showToast(msg) {
+    // 创建toast
+    const toast = document.createElement('div');
+    toast.style.cssText = `
+        position: fixed;
+        top: 30px;
+        left: 50%;
+        transform: translateX(-50%) translateY(-20px);
+        background: rgba(30, 41, 59, 0.9);
+        color: white;
+        padding: 12px 24px;
+        border-radius: 10px;
+        font-size: 14px;
+        z-index: 2000;
+        opacity: 0;
+        transition: all 0.3s ease;
+        box-shadow: var(--shadow-lg);
+    `;
+    toast.textContent = msg;
+    document.body.appendChild(toast);
+    
+    // 动画
+    setTimeout(() => {
+        toast.style.opacity = '1';
+        toast.style.transform = 'translateX(-50%) translateY(0)';
+    }, 10);
+    
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateX(-50%) translateY(-20px)';
+        setTimeout(() => toast.remove(), 300);
+    }, 2000);
+}
+
+// 点击遮罩关闭弹窗
+document.getElementById('confirmModal').addEventListener('click', function(e) {
+    if (e.target === this) closeConfirm(false);
+});
+
+// 初始化
+renderCategories();
+renderPromptList();
+</script>
+</body>
+</html>
