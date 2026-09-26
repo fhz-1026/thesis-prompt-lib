@@ -12,6 +12,7 @@
             --secondary: #64748b;
             --success: #10b981;
             --danger: #ef4444;
+            --warning: #f59e0b;
             --bg: #f1f5f9;
             --card-bg: rgba(255, 255, 255, 0.9);
             --border: #e2e8f0;
@@ -54,6 +55,36 @@
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .sync-status {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+            color: var(--text-sub);
+        }
+
+        .sync-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--secondary);
+        }
+
+        .sync-dot.online { background: var(--success); }
+        .sync-dot.syncing { background: var(--warning); animation: pulse 1s infinite; }
+        .sync-dot.offline { background: var(--danger); }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
         }
 
         .header-actions {
@@ -149,10 +180,6 @@
 
         .category-item:hover .del-btn {
             opacity: 1;
-        }
-
-        .category-item.active .del-btn:hover {
-            background: rgba(255,255,255,0.3);
         }
 
         .add-category-group {
@@ -354,14 +381,7 @@
             color: var(--text-sub);
         }
 
-        .empty-state svg {
-            width: 64px;
-            height: 64px;
-            margin-bottom: 16px;
-            opacity: 0.5;
-        }
-
-        /* 自定义确认弹窗 */
+        /* 弹窗通用 */
         .modal-overlay {
             position: fixed;
             top: 0;
@@ -386,14 +406,14 @@
             border-radius: 16px;
             padding: 28px;
             width: 90%;
-            max-width: 420px;
+            max-width: 480px;
             box-shadow: var(--shadow-lg);
             animation: scaleIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .modal h3 {
             font-size: 18px;
-            margin-bottom: 12px;
+            margin-bottom: 16px;
         }
 
         .modal p {
@@ -402,10 +422,33 @@
             line-height: 1.6;
         }
 
+        .modal-form-row {
+            margin-bottom: 14px;
+        }
+
+        .modal-form-row label {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .modal-form-row input {
+            width: 100%;
+        }
+
+        .modal-tip {
+            font-size: 12px;
+            color: var(--text-sub);
+            margin-top: 4px;
+            line-height: 1.5;
+        }
+
         .modal-actions {
             display: flex;
             justify-content: flex-end;
             gap: 10px;
+            margin-top: 20px;
         }
 
         /* 隐藏的文件输入 */
@@ -472,6 +515,10 @@
                 gap: 16px;
                 align-items: flex-start;
             }
+            .header-right {
+                width: 100%;
+                justify-content: space-between;
+            }
         }
     </style>
 </head>
@@ -479,10 +526,18 @@
     <!-- 顶部导航 -->
     <div class="header">
         <h1>📚 硕士学术论文 · AI提示词协作词库</h1>
-        <div class="header-actions">
-            <button class="btn btn-secondary" onclick="triggerImport()">📥 导入词库</button>
-            <button class="btn btn-primary" onclick="exportLibrary()">📤 导出词库</button>
-            <input type="file" id="fileInput" accept=".json" onchange="importLibrary(event)">
+        <div class="header-right">
+            <div class="sync-status">
+                <div class="sync-dot" id="syncDot"></div>
+                <span id="syncText">未配置同步</span>
+            </div>
+            <div class="header-actions">
+                <button class="btn btn-secondary btn-small" onclick="pullFromCloud()">🔄 拉取同步</button>
+                <button class="btn btn-secondary btn-small" onclick="openSettings()">⚙️ 同步设置</button>
+                <button class="btn btn-secondary" onclick="triggerImport()">📥 导入</button>
+                <button class="btn btn-primary" onclick="exportLibrary()">📤 导出</button>
+                <input type="file" id="fileInput" accept=".json" onchange="importLibrary(event)">
+            </div>
         </div>
     </div>
 
@@ -522,7 +577,7 @@
                 </div>
                 <input type="hidden" id="editId">
                 <div class="form-actions">
-                    <button class="btn btn-primary" onclick="savePrompt()">💾 保存提示词</button>
+                    <button class="btn btn-primary" onclick="savePrompt()">💾 保存并同步</button>
                     <button class="btn btn-secondary" onclick="clearForm()">清空表单</button>
                 </div>
             </div>
@@ -535,7 +590,7 @@
         </div>
     </div>
 
-    <!-- 自定义确认弹窗 -->
+    <!-- 确认弹窗 -->
     <div class="modal-overlay" id="confirmModal">
         <div class="modal">
             <h3 id="modalTitle">确认操作</h3>
@@ -543,6 +598,27 @@
             <div class="modal-actions">
                 <button class="btn btn-secondary" onclick="closeConfirm(false)">取消</button>
                 <button class="btn btn-danger" onclick="closeConfirm(true)">确定</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 同步设置弹窗 -->
+    <div class="modal-overlay" id="settingsModal">
+        <div class="modal">
+            <h3>⚙️ 云端同步设置</h3>
+            <div class="modal-form-row">
+                <label>Bin ID</label>
+                <input id="binIdInput" placeholder="粘贴你在JSONBin创建的Bin ID">
+                <div class="modal-tip">从 jsonbin.io 的 Bin 页面复制，一串字母数字</div>
+            </div>
+            <div class="modal-form-row">
+                <label>API Key</label>
+                <input id="apiKeyInput" placeholder="粘贴你的API密钥">
+                <div class="modal-tip">在 JSONBin 头像 → API Keys 中创建</div>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeSettings()">取消</button>
+                <button class="btn btn-primary" onclick="saveSettings()">保存并连接</button>
             </div>
         </div>
     </div>
@@ -555,11 +631,91 @@ let data = JSON.parse(localStorage.getItem('masterThesisPromptLib')) || {
     prompts: []
 };
 
+let syncConfig = JSON.parse(localStorage.getItem('syncConfig')) || {
+    binId: '',
+    apiKey: ''
+};
+
 let confirmCallback = null;
 
-// 保存到本地存储
+// 保存到本地
 function saveData() {
     localStorage.setItem('masterThesisPromptLib', JSON.stringify(data));
+}
+
+// 更新同步状态显示
+function updateSyncStatus(status, text) {
+    const dot = document.getElementById('syncDot');
+    const txt = document.getElementById('syncText');
+    dot.className = 'sync-dot ' + status;
+    txt.textContent = text;
+}
+
+// ========== 云端同步核心 ==========
+// 从云端拉取数据
+async function pullFromCloud() {
+    if (!syncConfig.binId || !syncConfig.apiKey) {
+        showToast('请先配置同步设置');
+        openSettings();
+        return;
+    }
+
+    updateSyncStatus('syncing', '正在拉取...');
+    try {
+        const res = await fetch(`https://api.jsonbin.io/v3/b/${syncConfig.binId}/latest`, {
+            headers: {
+                'X-Access-Key': syncConfig.apiKey
+            }
+        });
+        
+        if (!res.ok) throw new Error('请求失败');
+        const result = await res.json();
+        const cloudData = result.record;
+        
+        // 用云端数据覆盖本地
+        data = cloudData;
+        saveData();
+        renderCategories();
+        renderPromptList();
+        
+        updateSyncStatus('online', '已同步');
+        showToast('✅ 已从云端拉取最新数据');
+    } catch (err) {
+        console.error(err);
+        updateSyncStatus('offline', '同步失败');
+        showToast('❌ 拉取失败，请检查网络或配置');
+    }
+}
+
+// 推送本地数据到云端
+async function pushToCloud() {
+    if (!syncConfig.binId || !syncConfig.apiKey) return;
+
+    updateSyncStatus('syncing', '正在同步...');
+    try {
+        const res = await fetch(`https://api.jsonbin.io/v3/b/${syncConfig.binId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Master-Key': syncConfig.apiKey
+            },
+            body: JSON.stringify(data)
+        });
+
+        if (!res.ok) throw new Error('上传失败');
+        updateSyncStatus('online', '已同步');
+    } catch (err) {
+        console.error(err);
+        updateSyncStatus('offline', '同步失败');
+        showToast('⚠️ 云端同步失败，已保存到本地');
+    }
+}
+
+// 保存并同步（所有修改操作后调用）
+function saveAndSync() {
+    saveData();
+    // 异步同步，不阻塞界面
+    pushToCloud();
 }
 
 // ========== 分类管理 ==========
@@ -580,7 +736,7 @@ function renderCategories() {
 
 function switchCategory(name) {
     data.activeCategory = name;
-    saveData();
+    saveAndSync();
     renderCategories();
     renderPromptList();
 }
@@ -594,7 +750,7 @@ function addCategory() {
     data.categories.push(val);
     data.activeCategory = val;
     input.value = '';
-    saveData();
+    saveAndSync();
     renderCategories();
     renderPromptList();
     showToast('分类创建成功');
@@ -604,14 +760,14 @@ function delCategory(idx) {
     const catName = data.categories[idx];
     showConfirm(
         '删除分类确认',
-        `确定删除分类「${catName}」吗？该分类下的所有提示词将一并删除，且无法恢复。`,
+        `确定删除分类「${catName}」吗？该分类下的所有提示词将一并删除，且同步到云端后其他人也会消失。`,
         () => {
             data.prompts = data.prompts.filter(p => p.category !== catName);
             data.categories.splice(idx, 1);
             if (data.activeCategory === catName) {
                 data.activeCategory = data.categories[0] || '';
             }
-            saveData();
+            saveAndSync();
             renderCategories();
             renderPromptList();
             showToast('分类已删除');
@@ -636,9 +792,6 @@ function renderPromptList() {
     if (list.length === 0) {
         box.innerHTML = `
             <div class="empty-state">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                    <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                </svg>
                 <p>暂无提示词，在上方表单添加第一条吧</p>
             </div>
         `;
@@ -658,8 +811,11 @@ function renderPromptList() {
             <div class="prompt-content">${escapeHtml(item.content)}</div>
             <div class="prompt-actions">
                 <button class="btn btn-primary btn-small" onclick="copyPrompt('${item.id}')">📋 一键复制</button>
-                <button class="btn btn-success btn-small" onclick="copyAndGo('${item.id}', 'doubao')">🚀 复制并去豆包</button>
-                <button class="btn btn-secondary btn-small" onclick="copyAndGo('${item.id}', 'chatgpt')">🤖 复制并去ChatGPT</button>
+                <button class="btn btn-success btn-small" onclick="copyAndGo('${item.id}', 'doubao')">🚀 豆包</button>
+                <button class="btn btn-secondary btn-small" onclick="copyAndGo('${item.id}', 'chatgpt')">🤖 ChatGPT</button>
+                <button class="btn btn-secondary btn-small" onclick="copyAndGo('${item.id}', 'deepseek')">🔍 Deepseek</button>
+                <button class="btn btn-secondary btn-small" onclick="copyAndGo('${item.id}', 'kimi')">🧠 Kimi</button>
+                <button class="btn btn-secondary btn-small" onclick="copyAndGo('${item.id}', 'gemini')">💎 Gemini</button>
                 <button class="btn btn-secondary btn-small" onclick="editPrompt('${item.id}')">✏️ 编辑</button>
                 <button class="btn btn-danger btn-small" onclick="deletePrompt('${item.id}')">🗑️ 删除</button>
             </div>
@@ -682,7 +838,8 @@ function savePrompt() {
         target.content = content;
         target.remark = remark;
         target.category = data.activeCategory;
-        showToast('提示词已更新');
+        target.updateTime = new Date().toISOString();
+        showToast('提示词已更新并同步');
     } else {
         const newItem = {
             id: Date.now().toString(),
@@ -691,10 +848,10 @@ function savePrompt() {
             createTime: new Date().toISOString()
         };
         data.prompts.push(newItem);
-        showToast('提示词添加成功');
+        showToast('提示词添加成功并同步');
     }
 
-    saveData();
+    saveAndSync();
     clearForm();
     renderCategories();
     renderPromptList();
@@ -714,17 +871,16 @@ function editPrompt(id) {
     document.getElementById('promptRemark').value = item.remark;
     document.getElementById('editId').value = item.id;
     
-    // 滚动到表单
     document.querySelector('.form-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 function deletePrompt(id) {
     showConfirm(
         '删除提示词',
-        '确定删除这条提示词吗？删除后无法恢复。',
+        '确定删除这条提示词吗？删除后会同步到云端，无法恢复。',
         () => {
             data.prompts = data.prompts.filter(p => p.id !== id);
-            saveData();
+            saveAndSync();
             renderCategories();
             renderPromptList();
             showToast('提示词已删除');
@@ -747,7 +903,9 @@ function copyAndGo(id, platform) {
     const urls = {
         doubao: 'https://www.doubao.com',
         chatgpt: 'https://chat.openai.com',
-        claude: 'https://claude.ai'
+        deepseek: 'https://www.deepseek.com',
+        kimi: 'https://kimi.moonshot.cn',
+        gemini: 'https://gemini.google.com'
     };
     
     navigator.clipboard.writeText(item.content).then(() => {
@@ -759,7 +917,7 @@ function copyAndGo(id, platform) {
     });
 }
 
-// ========== 导入导出（多人协作核心） ==========
+// ========== 导入导出 ==========
 function triggerImport() {
     document.getElementById('fileInput').click();
 }
@@ -776,36 +934,33 @@ function importLibrary(event) {
                 throw new Error('无效的词库文件格式');
             }
 
-            // 合并分类：自动添加不存在的分类
-            let newCatCount = 0;
+            // 合并分类
             imported.categories.forEach(cat => {
                 if (!data.categories.includes(cat)) {
                     data.categories.push(cat);
-                    newCatCount++;
                 }
             });
 
-            // 合并提示词：全部追加
+            // 合并提示词
             const oldCount = data.prompts.length;
             imported.prompts.forEach(p => {
-                // 生成新ID避免冲突
                 p.id = Date.now().toString() + Math.random().toString(36).slice(2, 6);
                 data.prompts.push(p);
             });
             const newCount = data.prompts.length - oldCount;
 
-            saveData();
+            saveAndSync();
             renderCategories();
             renderPromptList();
             
-            showToast(`导入成功：新增 ${newCatCount} 个分类，${newCount} 条提示词`);
+            showToast(`导入成功：新增 ${newCount} 条提示词，已同步云端`);
         } catch (err) {
             showToast('导入失败：文件格式错误');
             console.error(err);
         }
     };
     reader.readAsText(file);
-    event.target.value = ''; // 重置以便重复导入同一文件
+    event.target.value = '';
 }
 
 function exportLibrary() {
@@ -821,7 +976,28 @@ function exportLibrary() {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
     
-    showToast('词库已导出，可分享给团队成员导入');
+    showToast('词库已导出');
+}
+
+// ========== 设置弹窗 ==========
+function openSettings() {
+    document.getElementById('binIdInput').value = syncConfig.binId;
+    document.getElementById('apiKeyInput').value = syncConfig.apiKey;
+    document.getElementById('settingsModal').classList.add('show');
+}
+
+function closeSettings() {
+    document.getElementById('settingsModal').classList.remove('show');
+}
+
+function saveSettings() {
+    syncConfig.binId = document.getElementById('binIdInput').value.trim();
+    syncConfig.apiKey = document.getElementById('apiKeyInput').value.trim();
+    localStorage.setItem('syncConfig', JSON.stringify(syncConfig));
+    closeSettings();
+    
+    // 测试连接并拉取
+    pullFromCloud();
 }
 
 // ========== 通用工具 ==========
@@ -847,7 +1023,6 @@ function closeConfirm(result) {
 }
 
 function showToast(msg) {
-    // 创建toast
     const toast = document.createElement('div');
     toast.style.cssText = `
         position: fixed;
@@ -867,7 +1042,6 @@ function showToast(msg) {
     toast.textContent = msg;
     document.body.appendChild(toast);
     
-    // 动画
     setTimeout(() => {
         toast.style.opacity = '1';
         toast.style.transform = 'translateX(-50%) translateY(0)';
@@ -877,17 +1051,28 @@ function showToast(msg) {
         toast.style.opacity = '0';
         toast.style.transform = 'translateX(-50%) translateY(-20px)';
         setTimeout(() => toast.remove(), 300);
-    }, 2000);
+    }, 2500);
 }
 
 // 点击遮罩关闭弹窗
 document.getElementById('confirmModal').addEventListener('click', function(e) {
     if (e.target === this) closeConfirm(false);
 });
+document.getElementById('settingsModal').addEventListener('click', function(e) {
+    if (e.target === this) closeSettings();
+});
 
 // 初始化
 renderCategories();
 renderPromptList();
+
+// 如果配置了同步，自动拉取一次
+if (syncConfig.binId && syncConfig.apiKey) {
+    updateSyncStatus('syncing', '正在连接...');
+    pullFromCloud();
+} else {
+    updateSyncStatus('', '未配置同步');
+}
 </script>
 </body>
 </html>
